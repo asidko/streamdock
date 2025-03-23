@@ -1,7 +1,7 @@
 # <img height="100px" src="./images/logo.png" />
 ## 📺 A Web-IPTV Player
 > [!WARNING]
-> Streamdock is still in its early stages. I've received a lot of valuable feedback, most of which highlights that certain codecs aren't running. Because of this, I’ve decided to implement transcoding (along with hardware acceleration) in future builds. Thank you for your patience.
+> Streamdock is still in its early stages. I've received a lot of valuable feedback, most of which highlights that certain codecs aren't running. Because of this, I've decided to implement transcoding (along with hardware acceleration) in future builds. Thank you for your patience.
 
 
 ![screenshot](https://github.com/Limmer55/streamdock/blob/main/images/Screenshot1.png?raw=true)
@@ -10,7 +10,7 @@
 - 🔍 **Search Functionality**: Find channels by name.
 - 🌙 **Darkmode Support**: Automatically switches between light and dark modes based on your system preferences.
 - 📡 **Similar Channels**: View and navigate to similar channels based on normalized channel names. 
-- 🌍 [**iptv-org Playlists**](https://github.com/iptv-org/iptv): If you don’t have an IPTV provider, choose a playlist for your country.
+- 🌍 [**iptv-org Playlists**](https://github.com/iptv-org/iptv): If you don't have an IPTV provider, choose a playlist for your country.
 - 📽️ **Picture-In-Picture Mode**: Watch videos in a floating window.
 
 **⚠️ It might not be very stable. Safari is currently not supported.**
@@ -45,6 +45,36 @@ docker-compose up -d
 http://[IPADDRESS/HOSTNAME]:6050/
 ```
 If you don't set a M3U_URL, open settings page and set it there.
+
+
+## Development
+To run the project locally for development:
+
+1. Clone the repository
+
+2. Create and activate a virtual environment
+   ```bash
+   cd source
+   python3 -m venv venv
+   
+   # On Windows
+   venv\Scripts\activate
+   
+   # On macOS/Linux
+   source venv/bin/activate
+   ```
+
+3. Install Python dependencies
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Run the application
+   ```bash
+   python3 run.py
+   ```
+
+5. Open your browser and visit `http://localhost:6050`
 
 
 ## Why?

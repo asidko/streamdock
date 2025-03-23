@@ -181,3 +181,5 @@ cython_debug/
 # Cache
 /static/icon_cache/
 /static/stream_cache/
+
+venv
