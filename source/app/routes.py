@@ -1,4 +1,4 @@
-from flask import render_template, Blueprint, jsonify, request, current_app, send_file
+from flask import render_template, Blueprint, jsonify, request, current_app, send_file, g
 from .m3u_parser import parse_m3u_channels_and_categories
 import os
 import logging
@@ -85,6 +85,16 @@ def settings():
         m3u_url = request.form.get('m3u_url', '').strip()
         if m3u_url:
             
+            # Delete the cached playlist.json file to force re-parsing
+            playlist_json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'playlist.json')
+            if os.path.exists(playlist_json_path):
+                try:
+                    os.remove(playlist_json_path)
+                    logging.info(f"Removed cached playlist file: {playlist_json_path}")
+                except Exception as e:
+                    logging.error(f"Failed to remove cached playlist file: {e}")
+            
+            # Save the new config
             config_data = {"m3u_url": m3u_url}
             try:
                 with open(config_path, 'w', encoding='utf-8') as config_file:
@@ -93,19 +103,14 @@ def settings():
                 current_app.config['M3U_URL'] = m3u_url
                 logging.info(f"M3U URL updated: {m3u_url}")
                 
-                
-                playlist_json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'playlist.json')
-                if os.path.exists(playlist_json_path):
-                    os.remove(playlist_json_path)
-                    logging.info(f"Existing playlist.json deleted: {playlist_json_path}")
-                else:
-                    logging.info("No existing playlist.json found to delete.")
-                
+                # Clear any existing channels and categories from memory
+                if hasattr(g, 'categories'):
+                    delattr(g, 'categories')
                 
                 success_message = "M3U URL successfully updated."
                 return render_template('settings.html', success=success_message, m3u_url=m3u_url)
             except Exception as e:
-                logging.error(f"Error writing config.json: {e}")
+                logging.error(f"Error updating M3U URL: {e}")
                 return render_template('settings.html', error="Error updating the M3U URL.", m3u_url=m3u_url)
         else:
             return render_template('settings.html', error="Please provide a valid M3U URL.", m3u_url=m3u_url)

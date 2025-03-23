@@ -44,20 +44,39 @@ def parse_m3u_channels_and_categories(m3u_url, progress_callback=None):
 
     channel_info = {}
     category = "Uncategorized"
+    current_extgrp = None
+    
     for line in m3u_content.splitlines():
         line = line.strip()
+        
+        # Parse EXTINF line (channel info)
         if line.startswith("#EXTINF"):
             info = line.split("#EXTINF:")[1].split(",", 1)
             channel_info['name'] = info[1].strip() if len(info) > 1 else "Unknown Channel"
 
+            # Look for group-title attribute
             match = re.search(r'group-title="([^"]+)"', line)
-            category = match.group(1) if match else "Uncategorized"
+            if match:
+                category = match.group(1)
+                current_extgrp = None  # Reset any EXTGRP that might have been set
+            else:
+                # If no group-title found, use the most recent EXTGRP or "Uncategorized"
+                category = current_extgrp if current_extgrp else "Uncategorized"
 
             icon_match = re.search(r'tvg-logo="([^"]+)"', line)
             icon_url = icon_match.group(1) if icon_match else None
 
             channel_info['icon'] = icon_url
+        
+        # Parse EXTGRP line (category info)
+        elif line.startswith("#EXTGRP:"):
+            # Extract category name from EXTGRP tag
+            extgrp_info = line.split("#EXTGRP:")[1].strip()
+            if extgrp_info:
+                current_extgrp = extgrp_info
+                category = current_extgrp  # Set the category to the current EXTGRP value
 
+        # Parse the URL line
         elif line and not line.startswith("#"):
             channel_info['url'] = line
 
