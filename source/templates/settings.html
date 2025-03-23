@@ -9,22 +9,207 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
 
+    <link rel="icon" href="{{ url_for('static', filename='favicons/favicon-32x32.png') }}" sizes="32x32" type="image/png">
+    <link rel="icon" href="{{ url_for('static', filename='favicons/favicon-16x16.png') }}" sizes="16x16" type="image/png">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}" type="image/x-icon">
+    <style>
+        .language-switcher {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+        }
+        .lang-btn {
+            padding: 5px 10px;
+            background-color: var(--secondary);
+            color: var(--text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .lang-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        .lang-btn:hover {
+            opacity: 0.9;
+        }
+        #language-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--secondary);
+        }
+        @media (max-width: 768px) {
+            .language-switcher {
+                top: 10px;
+                right: 20px;
+            }
+            .lang-btn {
+                padding: 3px 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
     <script>
+        // Initialize translations object
+        window.translations = {};
+
         function setTheme() {
             const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
             const currentTheme = prefersDarkScheme.matches ? "dark" : "light";
             document.documentElement.setAttribute("data-theme", currentTheme);
+            updateLogo(currentTheme);
+        }
+
+        function updateLogo(theme) {
+            const logo = document.getElementById("logo");
+            if (theme === "dark") {
+                logo.src = "{{ url_for('static', filename='streamdock-logo_dark.png') }}";
+            } else {
+                logo.src = "{{ url_for('static', filename='streamdock-logo_light.png') }}";
+            }
         }
 
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener('change', e => {
             const newColorScheme = e.matches ? "dark" : "light";
             document.documentElement.setAttribute("data-theme", newColorScheme);
+            updateLogo(newColorScheme);
         });
 
-        window.addEventListener('DOMContentLoaded', setTheme);
+        // Load translations
+        function loadTranslations() {
+            fetch('/api/language')
+                .then(response => response.json())
+                .then(data => {
+                    window.translations = data;
+                    updateUITranslations();
+                })
+                .catch(error => {
+                    console.error('Error loading translations:', error);
+                });
+        }
+
+        // Apply translations to UI elements
+        function updateUITranslations() {
+            // Update headings and labels
+            document.querySelector('h1').textContent = window.translations.settings || "Settings";
+            
+            // Update M3U playlist section
+            const m3uHeading = document.querySelector('h2[for="m3u_url"]');
+            if (m3uHeading && window.translations.m3u_playlist_url) {
+                m3uHeading.textContent = window.translations.m3u_playlist_url + ":";
+            }
+            
+            // Update language section
+            const langHeading = document.querySelector('#language-section h2');
+            if (langHeading && window.translations.language) {
+                langHeading.textContent = window.translations.language + ":";
+            }
+            
+            // Update buttons
+            const saveBtn = document.querySelector('button[type="submit"]');
+            if (saveBtn && window.translations.save) {
+                saveBtn.textContent = window.translations.save;
+            }
+            
+            // Update active language button
+            const currentLang = '{{ lang }}';
+            const langButtons = document.querySelectorAll('.lang-btn');
+            langButtons.forEach(btn => {
+                if (btn.getAttribute('data-lang') === currentLang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Update English/Ukrainian text
+            const enLabel = document.querySelector('label[for="lang-en"]');
+            const ukLabel = document.querySelector('label[for="lang-uk"]');
+            if (enLabel && window.translations.english) {
+                enLabel.textContent = window.translations.english;
+            }
+            if (ukLabel && window.translations.ukrainian) {
+                ukLabel.textContent = window.translations.ukrainian;
+            }
+            
+            // Translate success/error messages
+            if (window.translations.success_message) {
+                const successMsg = document.querySelector('.success-message');
+                if (successMsg) {
+                    successMsg.textContent = window.translations.success_message;
+                }
+            }
+            
+            if (window.translations.error_update || window.translations.error_no_url) {
+                const errorMsg = document.querySelector('.error-message');
+                if (errorMsg) {
+                    // Keep the original error message type but translate it
+                    if (errorMsg.textContent.includes("Please provide a valid")) {
+                        errorMsg.textContent = window.translations.error_no_url || "Please provide a valid M3U URL.";
+                    } else {
+                        errorMsg.textContent = window.translations.error_update || "Error updating the M3U URL.";
+                    }
+                }
+            }
+            
+            // Translate dropdown menu items
+            const homeLink = document.querySelector('#dropdownMenu a');
+            if (homeLink && window.translations.home) {
+                homeLink.textContent = window.translations.home;
+            }
+            
+            // Translate country selector elements
+            const countryHeading = document.querySelector('h2:nth-of-type(3)');
+            if (countryHeading && window.translations.choose_playlist) {
+                countryHeading.textContent = window.translations.choose_playlist;
+            }
+            
+            const countryLabel = document.querySelector('.country-container > label');
+            if (countryLabel && window.translations.choose_playlist) {
+                countryLabel.textContent = window.translations.choose_playlist;
+            }
+            
+            // Update the country search input
+            const countrySearch = document.getElementById('countrySearch');
+            if (countrySearch && window.translations.search_countries) {
+                countrySearch.placeholder = window.translations.search_countries;
+            }
+            
+            // Translate back to player link
+            const backLink = document.querySelector('.back-link');
+            if (backLink && window.translations.home) {
+                backLink.textContent = window.translations.back_to_player || "Back to Player";
+            }
+            
+            // Translate "more" button if it exists
+            translateMoreButton();
+        }
+        
+        function translateMoreButton() {
+            setTimeout(() => {
+                const moreButton = document.querySelector('.country-button:last-child');
+                if (moreButton && moreButton.textContent.includes('...more') && window.translations.more) {
+                    moreButton.textContent = window.translations.more;
+                }
+            }, 500); // Small delay to ensure country buttons are rendered
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTheme();
+            loadTranslations();
+        });
     </script>
 </head>
 <body>
+    <div class="language-switcher">
+        <button class="lang-btn" data-lang="en" onclick="window.location.href='/language/en'">EN</button>
+        <button class="lang-btn" data-lang="uk" onclick="window.location.href='/language/uk'">UK</button>
+    </div>
+
     <div class="content">
         <div class="menu-button-container">
             <button class="menu-button" onclick="toggleMenu()">☰</button>
@@ -36,23 +221,37 @@
         <h1>Settings</h1>
         
         {% if success %}
-            <p style="color: green;">{{ success }}</p>
+            <p class="success-message" style="color: green;">{{ success }}</p>
         {% endif %}
         {% if error %}
-            <p style="color: red;">{{ error }}</p>
+            <p class="error-message" style="color: red;">{{ error }}</p>
         {% endif %}
 
         <form id="settingsForm" method="POST" action="/settings">
-            <h2 for="m3u_url">M3U Playlist URL:</label><br>
+            <h2 for="m3u_url">M3U Playlist URL:</h2>
             <input type="url" id="m3u_url" name="m3u_url" placeholder="https://iptv-org.github.io/iptv/index.m3u" value="{{ m3u_url }}" required style="width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; border-radius: 4px; border: 1px solid var(--secondary);"><br>
-            <button type="submit" name="action" value="save" class="menu-button" style="padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Save</button>
+            
+            <div id="language-section">
+                <h2>Language:</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="radio" id="lang-en" name="language" value="en" {% if lang == 'en' %}checked{% endif %} onclick="window.location.href='/language/en'">
+                    <label for="lang-en">English</label>
+                    
+                    <input type="radio" id="lang-uk" name="language" value="uk" {% if lang == 'uk' %}checked{% endif %} onclick="window.location.href='/language/uk'">
+                    <label for="lang-uk">Ukrainian</label>
+                </div>
+            </div>
+            
+            <button type="submit" style="margin-top: 16px; padding: 8px 16px; background-color: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer;">Save</button>
         </form>
 
+        <h2>Choose Free Playlist from iptv-org (most channels are country-locked!)</h2>
         <div class="country-container">
-            <label>Choose Free Playlist from iptv-org (most channels are country-locked!)</label><br>
             <input type="text" id="countrySearch" placeholder="Search countries..." style="width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; border-radius: 4px; border: 1px solid var(--secondary);">
             <div class="country-buttons-container"></div>
         </div>
+        
+        <a href="/" class="back-link">Back to Player</a>
         
         <script>
             let allCountries = []; 
@@ -62,6 +261,8 @@
                 .then(countries => {
                     allCountries = countries; 
                     renderCountryButtons(countries);
+                    // Apply translations after rendering country buttons
+                    setTimeout(translateMoreButton, 500);
                 })
                 .catch(error => console.error('Error loading countries:', error));
         

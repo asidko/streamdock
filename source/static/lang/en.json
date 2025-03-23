@@ -1,0 +1,23 @@
+{
+  "app_name": "StreamDock",
+  "search_placeholder": "Search Channel...",
+  "loading": "Loading...",
+  "settings": "Settings",
+  "similar_channels": "Similar Channels",
+  "currently_watching": "Currently watching",
+  "m3u_playlist_url": "M3U Playlist URL",
+  "save": "Save",
+  "success_message": "M3U URL successfully updated.",
+  "error_no_url": "Please provide a valid M3U URL.",
+  "error_update": "Error updating the M3U URL.",
+  "language": "Language",
+  "english": "English",
+  "ukrainian": "Ukrainian",
+  "no_channels": "No channels found.",
+  "no_categories": "No categories available.",
+  "home": "Home",
+  "choose_playlist": "Choose Free Playlist from iptv-org (most channels are country-locked!)",
+  "search_countries": "Search countries...",
+  "more": "...more",
+  "back_to_player": "Back to Player"
+} 

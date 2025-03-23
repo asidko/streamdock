@@ -1,4 +1,4 @@
-from flask import render_template, Blueprint, jsonify, request, current_app, send_file, g
+from flask import render_template, Blueprint, jsonify, request, current_app, send_file, g, redirect, url_for, session
 from .m3u_parser import parse_m3u_channels_and_categories
 import os
 import logging
@@ -11,7 +11,8 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    return render_template('index.html')
+    lang = current_app.config.get('LANGUAGE', 'en')
+    return render_template('index.html', lang=lang)
 
 @main_bp.route('/api/categories')
 def get_categories():
@@ -52,14 +53,60 @@ def proxy_image():
         return send_file(BytesIO(response.content), mimetype=content_type)
     except requests.exceptions.RequestException as e:
         logging.error(f"Error proxying image: {e}")
-        # Fallback auf ein Default-Image, wenn das Proxying fehlschlägt
+        # Fallback to a default image if proxying fails
         default_icon_path = os.path.join(current_app.static_folder, 'default-logo_light.png')
         if os.path.exists(default_icon_path):
             return send_file(default_icon_path, mimetype='image/png')
         else:
             return jsonify({"error": "Default image not found"}), 500
 
+@main_bp.route('/api/language')
+def get_language():
+    lang = current_app.config.get('LANGUAGE', 'en')
+    lang_file_path = os.path.join(current_app.static_folder, f'lang/{lang}.json')
+    
+    try:
+        with open(lang_file_path, 'r', encoding='utf-8') as lang_file:
+            translations = json.load(lang_file)
+            return jsonify(translations)
+    except Exception as e:
+        logging.error(f"Error loading language file: {e}")
+        # If error, return empty translations
+        return jsonify({})
 
+@main_bp.route('/language/<lang_code>')
+def change_language(lang_code):
+    # Validate language code
+    if lang_code not in ['en', 'uk']:
+        return jsonify({"error": "Invalid language code"}), 400
+    
+    # Update config file
+    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as config_file:
+                config_data = json.load(config_file)
+        else:
+            config_data = {}
+        
+        config_data['language'] = lang_code
+        
+        with open(config_path, 'w', encoding='utf-8') as config_file:
+            json.dump(config_data, config_file, indent=4)
+        
+        # Update app config
+        current_app.config['LANGUAGE'] = lang_code
+        logging.info(f"Language changed to: {lang_code}")
+        
+        # Redirect to referring page or home
+        referrer = request.referrer
+        if referrer:
+            return redirect(referrer)
+        return redirect(url_for('main.index'))
+    
+    except Exception as e:
+        logging.error(f"Error changing language: {e}")
+        return jsonify({"error": "Failed to change language"}), 500
 
 @main_bp.route('/get_stream', methods=['POST'])
 def get_stream():
@@ -81,6 +128,8 @@ def get_stream():
 def settings():
     
     config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+    lang = current_app.config.get('LANGUAGE', 'en')
+
     if request.method == 'POST':
         m3u_url = request.form.get('m3u_url', '').strip()
         if m3u_url:
@@ -95,8 +144,18 @@ def settings():
                     logging.error(f"Failed to remove cached playlist file: {e}")
             
             # Save the new config
-            config_data = {"m3u_url": m3u_url}
             try:
+                if os.path.exists(config_path):
+                    with open(config_path, 'r', encoding='utf-8') as config_file:
+                        config_data = json.load(config_file)
+                else:
+                    config_data = {}
+
+                config_data['m3u_url'] = m3u_url
+                # Preserve language setting if it exists
+                if 'language' not in config_data:
+                    config_data['language'] = current_app.config.get('LANGUAGE', 'en')
+                
                 with open(config_path, 'w', encoding='utf-8') as config_file:
                     json.dump(config_data, config_file, indent=4)
                 
@@ -108,12 +167,12 @@ def settings():
                     delattr(g, 'categories')
                 
                 success_message = "M3U URL successfully updated."
-                return render_template('settings.html', success=success_message, m3u_url=m3u_url)
+                return render_template('settings.html', success=success_message, m3u_url=m3u_url, lang=lang)
             except Exception as e:
                 logging.error(f"Error updating M3U URL: {e}")
-                return render_template('settings.html', error="Error updating the M3U URL.", m3u_url=m3u_url)
+                return render_template('settings.html', error="Error updating the M3U URL.", m3u_url=m3u_url, lang=lang)
         else:
-            return render_template('settings.html', error="Please provide a valid M3U URL.", m3u_url=m3u_url)
+            return render_template('settings.html', error="Please provide a valid M3U URL.", m3u_url=m3u_url, lang=lang)
     else:
         
         if os.path.exists(config_path):
@@ -127,4 +186,4 @@ def settings():
         else:
             m3u_url = ''
             logging.warning("config.json not found.")
-        return render_template('settings.html', m3u_url=m3u_url)
+        return render_template('settings.html', m3u_url=m3u_url, lang=lang)

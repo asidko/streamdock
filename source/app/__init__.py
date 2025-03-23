@@ -13,7 +13,7 @@ def create_app():
 
     logging.basicConfig(level=logging.ERROR)
 
-    # Priorität: Umgebungsvariable > config.json
+    # Priority: Environment variable > config.json
     m3u_url_env = os.environ.get('M3U_URL')
     if m3u_url_env:
         app.config['M3U_URL'] = m3u_url_env
@@ -25,13 +25,23 @@ def create_app():
                 try:
                     config_data = json.load(config_file)
                     app.config['M3U_URL'] = config_data.get('m3u_url', '')
+                    app.config['LANGUAGE'] = config_data.get('language', 'en')
                     logging.info(f"M3U URL loaded from config.json: {app.config['M3U_URL']}")
+                    logging.info(f"Language loaded from config.json: {app.config['LANGUAGE']}")
                 except json.JSONDecodeError:
                     app.config['M3U_URL'] = ''
-                    logging.error("Error parsing config.json. 'M3U_URL' set to empty.")
+                    app.config['LANGUAGE'] = 'en'
+                    logging.error("Error parsing config.json. Default settings applied.")
         else:
             app.config['M3U_URL'] = ''
-            logging.warning("config.json not found. 'M3U_URL' set to empty.")
+            app.config['LANGUAGE'] = 'en'
+            logging.warning("config.json not found. Default settings applied.")
+
+    # Environmental override for language
+    lang_env = os.environ.get('LANGUAGE')
+    if lang_env:
+        app.config['LANGUAGE'] = lang_env
+        logging.info(f"Language loaded from environment: {app.config['LANGUAGE']}")
 
     with app.app_context():
         app.register_blueprint(main_bp)

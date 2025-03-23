@@ -13,10 +13,47 @@
     <link rel="icon" href="{{ url_for('static', filename='favicons/favicon-16x16.png') }}" sizes="16x16" type="image/png">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicons/favicon.ico') }}" type="image/x-icon">
     
-
-
+    <style>
+        .language-switcher {
+            position: absolute;
+            top: 10px;
+            right: 60px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+        }
+        .lang-btn {
+            padding: 5px 10px;
+            background-color: var(--secondary);
+            color: var(--text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .lang-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        .lang-btn:hover {
+            opacity: 0.9;
+        }
+        @media (max-width: 768px) {
+            .language-switcher {
+                top: 10px;
+                right: 55px;
+            }
+            .lang-btn {
+                padding: 3px 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
 
     <script>
+        // Initialize translations object
+        window.translations = {};
+
         function setTheme() {
             const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
             const currentTheme = prefersDarkScheme.matches ? "dark" : "light";
@@ -41,12 +78,70 @@
             loadCategories();
         });
 
-        window.addEventListener('DOMContentLoaded', setTheme);
+        // Load translations
+        function loadTranslations() {
+            fetch('/api/language')
+                .then(response => response.json())
+                .then(data => {
+                    window.translations = data;
+                    updateUITranslations();
+                })
+                .catch(error => {
+                    console.error('Error loading translations:', error);
+                });
+        }
+
+        // Apply translations to UI elements
+        function updateUITranslations() {
+            // Update search placeholder
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput && window.translations.search_placeholder) {
+                searchInput.placeholder = window.translations.search_placeholder;
+            }
+            
+            // Update other UI elements with translations
+            const similarChannelsHeading = document.querySelector('.sidebar-right h3');
+            if (similarChannelsHeading && window.translations.similar_channels) {
+                similarChannelsHeading.textContent = window.translations.similar_channels;
+            }
+            
+            // Update active language button
+            const currentLang = '{{ lang }}';
+            const langButtons = document.querySelectorAll('.lang-btn');
+            langButtons.forEach(btn => {
+                if (btn.getAttribute('data-lang') === currentLang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Translate dropdown menu items
+            const settingsLink = document.querySelector('#dropdownMenu a');
+            if (settingsLink && window.translations.settings) {
+                settingsLink.textContent = window.translations.settings;
+            }
+            
+            // Update document title
+            if (window.translations.app_name) {
+                document.title = window.translations.app_name;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTheme();
+            loadTranslations();
+        });
     </script>
 </head>
 <body>
     <div id="loaderOverlay" class="loader-overlay"></div>
     <div id="loader" class="loader"></div>
+
+    <div class="language-switcher">
+        <button class="lang-btn" data-lang="en" onclick="window.location.href='/language/en'">EN</button>
+        <button class="lang-btn" data-lang="uk" onclick="window.location.href='/language/uk'">UK</button>
+    </div>
 
     <div class="sidebar">
         <img id="logo" src="{{ url_for('static', filename='streamdock-logo_light.png') }}" alt="StreamDock Logo" class="logo">
@@ -107,62 +202,76 @@
 
                     const defaultIconUrl = getDefaultIconUrl();
 
-                    categories.forEach(category => {
-                        const categoryDiv = document.createElement('div');
-                        categoryDiv.classList.add('category');
+                    if (categories.length === 0) {
+                        const noCategories = document.createElement('p');
+                        noCategories.classList.add('menu-item');
+                        noCategories.textContent = window.translations.no_categories || "No categories available.";
+                        categoryContainer.appendChild(noCategories);
+                    } else {
+                        categories.forEach(category => {
+                            const categoryDiv = document.createElement('div');
+                            categoryDiv.classList.add('category');
 
-                        const categoryName = document.createElement('p');
-                        categoryName.classList.add('menu-item');
-                        categoryName.textContent = category.name;
-                        categoryName.onclick = () => toggleChannels(category.name);
+                            const categoryName = document.createElement('p');
+                            categoryName.classList.add('menu-item');
+                            categoryName.textContent = category.name;
+                            categoryName.onclick = () => toggleChannels(category.name);
 
-                        const channelsList = document.createElement('div');
-                        channelsList.id = `channels-${category.name}`;
-                        channelsList.classList.add('channels-list');
-                        channelsList.style.display = 'none';
+                            const channelsList = document.createElement('div');
+                            channelsList.id = `channels-${category.name}`;
+                            channelsList.classList.add('channels-list');
+                            channelsList.style.display = 'none';
 
-                        category.channels.forEach(channel => {
-                            const channelP = document.createElement('p');
-                            channelP.classList.add('channel-name');
-                            channelP.setAttribute('data-channel-name', channel.name);
-                            channelP.setAttribute('data-stream-url', channel.url);
+                            if (category.channels.length === 0) {
+                                const noChannels = document.createElement('p');
+                                noChannels.classList.add('channel-name');
+                                noChannels.textContent = window.translations.no_channels || "No channels found.";
+                                channelsList.appendChild(noChannels);
+                            } else {
+                                category.channels.forEach(channel => {
+                                    const channelP = document.createElement('p');
+                                    channelP.classList.add('channel-name');
+                                    channelP.setAttribute('data-channel-name', channel.name);
+                                    channelP.setAttribute('data-stream-url', channel.url);
 
-                            const iconUrl = channel.icon 
-                                ? `/proxy_image?url=${encodeURIComponent(channel.icon)}`
-                                : defaultIconUrl;
+                                    const iconUrl = channel.icon 
+                                        ? `/proxy_image?url=${encodeURIComponent(channel.icon)}`
+                                        : defaultIconUrl;
 
-                            channelP.setAttribute('data-channel-icon', iconUrl);
+                                    channelP.setAttribute('data-channel-icon', iconUrl);
 
-                            const iconImg = document.createElement('img');
-                            iconImg.src = iconUrl;
-                            iconImg.alt = "Icon";
-                            iconImg.classList.add('channel-icon');
+                                    const iconImg = document.createElement('img');
+                                    iconImg.src = iconUrl;
+                                    iconImg.alt = "Icon";
+                                    iconImg.classList.add('channel-icon');
 
-                            
-                            iconImg.onerror = function() {
-                                this.onerror = null; 
-                                this.src = defaultIconUrl;
-                            };
+                                    
+                                    iconImg.onerror = function() {
+                                        this.onerror = null; 
+                                        this.src = defaultIconUrl;
+                                    };
 
-                            channelP.appendChild(iconImg);
-                            channelP.appendChild(document.createTextNode(channel.name));
+                                    channelP.appendChild(iconImg);
+                                    channelP.appendChild(document.createTextNode(channel.name));
 
-                            channelsList.appendChild(channelP);
+                                    channelsList.appendChild(channelP);
 
-                            window.allChannels.push(channel);
+                                    window.allChannels.push(channel);
 
-                            const baseName = normalizeChannelName(channel.name);
-                            if (!window.baseNameToChannels[baseName]) {
-                                window.baseNameToChannels[baseName] = [];
+                                    const baseName = normalizeChannelName(channel.name);
+                                    if (!window.baseNameToChannels[baseName]) {
+                                        window.baseNameToChannels[baseName] = [];
+                                    }
+                                    window.baseNameToChannels[baseName].push(channel);
+                                });
                             }
-                            window.baseNameToChannels[baseName].push(channel);
+
+                            categoryDiv.appendChild(categoryName);
+                            categoryDiv.appendChild(channelsList);
+
+                            categoryContainer.appendChild(categoryDiv);
                         });
-
-                        categoryDiv.appendChild(categoryName);
-                        categoryDiv.appendChild(channelsList);
-
-                        categoryContainer.appendChild(categoryDiv);
-                    });
+                    }
                     hideLoader();
                 })
                 .catch(error => {
@@ -237,9 +346,10 @@
         const validChannelIcon = channelIcon && channelIcon !== 'null' ? channelIcon : defaultIcon;
 
         const selectedChannel = document.getElementById("selected-channel");
+        const currentlyWatching = window.translations.currently_watching || "Currently watching";
         selectedChannel.innerHTML = `
             <img src="${validChannelIcon}" alt="Icon" class="selected-channel-icon">
-            Currently watching: ${channelName}
+            ${currentlyWatching}: ${channelName}
         `;
         selectedChannel.style.display = "flex";
 

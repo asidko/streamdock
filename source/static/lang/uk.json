@@ -1,0 +1,23 @@
+{
+  "app_name": "StreamDock",
+  "search_placeholder": "Пошук каналу...",
+  "loading": "Завантаження...",
+  "settings": "Налаштування",
+  "similar_channels": "Схожі канали",
+  "currently_watching": "Зараз дивимось",
+  "m3u_playlist_url": "URL M3U плейлиста",
+  "save": "Зберегти",
+  "success_message": "URL M3U успішно оновлено.",
+  "error_no_url": "Будь ласка, надайте дійсний URL M3U.",
+  "error_update": "Помилка оновлення URL M3U.",
+  "language": "Мова",
+  "english": "Англійська",
+  "ukrainian": "Українська",
+  "no_channels": "Канали не знайдено.",
+  "no_categories": "Немає доступних категорій.",
+  "home": "Головна",
+  "choose_playlist": "Виберіть безкоштовний плейлист з iptv-org (більшість каналів доступні лише в певних країнах!)",
+  "search_countries": "Пошук країн...",
+  "more": "...більше",
+  "back_to_player": "Повернутись до програвача"
+} 
